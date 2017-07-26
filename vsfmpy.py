@@ -23,7 +23,7 @@ import socket
 import os
 import logging
 name = __name__
-loglevel = logging.info   # Adust the logging level here.
+loglevel = logging.INFO   # Adust the logging level here.
 logger = logging.getLogger(name)
 logger.setLevel(loglevel)
 console_handler = logging.StreamHandler()
@@ -32,7 +32,7 @@ formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-from vsfm_data import vsfm_command_dict, default_path
+from .vsfm_data import vsfm_command_dict, default_path
 try:
     from cv2 import KeyPoint
     from numpy import ndarray, pi
@@ -43,16 +43,7 @@ except:
     tau = 2 * 3.141592653589793
     class KeyPoint(object):
         def __init__(self, x, y, size, angle=-1, response=0, octave=0, class_id=-1):
-            """
-            Dummy placeholder class for openCV's KeyPoint object
-            :param x:
-            :param y:
-            :param size:
-            :param angle:
-            :param response:
-            :param octave:
-            :param class_id:
-            """
+            # Dummy placeholder class for openCV's KeyPoint object
             self.x = x
             self.y = y
             self.pt = (x, y)
@@ -171,6 +162,15 @@ def send_vsfm_command_num(open_socket, number, param=None, wait=False, timeout=6
     return True
 
 def send_vsfm_command_tup(open_socket, tuple_command, param=None, wait=False, timeout=60):
+    """
+    Sends a VSFM command as a tuple object. This tuple is just strings corresponding to the menu invoked.
+    :param open_socket: The open socket to VSFM
+    :param tuple_command: The command to be sent, e.g ('file', 'open_multi_images')
+    :param param: The parameter if any sent along the command line
+    :param wait: weather or not to wait for the command to finish
+    :param timeout: total timeout to wait for a command to finish
+    :return:
+    """
     logger.info("Sending command: " + str(tuple_command))
     try:
         last = vsfm_command_dict
@@ -217,7 +217,7 @@ def wait_until_complete(sock, timeout=None):
                 waiting = False
 
 def vsfm_of_img_dir(images_path = r'../testing/image sets/kermit', close=True):
-    images = [file for file in os.listdir(images_path) if any([file.endswith(ext) for ext in ['.jpg']])]
+    images = [file for file in os.listdir(images_path) if any([file.endswith(ext) for ext in ['.jpg', '.png']])]
     logger.info(str(len(images)) + " images found in path " + images_path)
     port = start_vsfm()
     open_sock = open_socket(port)
