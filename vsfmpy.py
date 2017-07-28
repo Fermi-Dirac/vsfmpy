@@ -72,15 +72,13 @@ def read_vsfm_sift(filename):
             loc_bin = fileobj.read(4*5)
             location = struct.unpack_from(loc_format, loc_bin)
             keypoints.append(location)
-        logger.debug(str(len(keypoints)) + " keypoints found, two examples:")
+        logger.debug(str(len(keypoints)) + " keypoints found")
 
         for _ in range(nfeatures):
             desc_bin = fileobj.read(struct.calcsize(desc_format))
             desc = struct.unpack_from(desc_format, desc_bin)
             descriptions.append(desc)
         logger.debug(str(len(descriptions)) + " descriptions found, two examples:")
-        logger.debug(descriptions[4])
-        logger.debug(descriptions[99])
         buffer = fileobj.read()
         logger.debug("The rest of the buffer is:" + str(buffer))
         kp_list = [KeyPoint(kp[0], kp[1], kp[5], kp[6]*360/tau) for kp in keypoints]
@@ -142,7 +140,7 @@ def open_socket(port, host='localhost', wait=True):
     for _ in range(10):
         try:
             sock.connect((host, port))
-            logger.info("Socket connected on " + host + " to port " + port)
+            logger.debug("Socket connected on " + host + " to port " + port)
             break
         except:
             time.sleep(0.1)
@@ -150,7 +148,7 @@ def open_socket(port, host='localhost', wait=True):
     return sock
 
 def send_vsfm_command_num(open_socket, number, param=None, wait=False, timeout=60):
-    logger.info("Sending command #" + str(number))
+    logger.debug("Sending command #" + str(number))
     if param is None:
         cmd = str(number) + '\n'
     else:
@@ -171,7 +169,7 @@ def send_vsfm_command_tup(open_socket, tuple_command, param=None, wait=False, ti
     :param timeout: total timeout to wait for a command to finish
     :return:
     """
-    logger.info("Sending command: " + str(tuple_command))
+    logger.debug("Sending command: " + str(tuple_command))
     try:
         last = vsfm_command_dict
         for command in tuple_command:
@@ -193,6 +191,7 @@ def wait_until_complete(sock, timeout=None):
     waiting = True
     begin = time.time()
     vsfm_complete_flags = ['*command processed*', 'done', 'finished']
+    bytes_rec = b''
     while waiting:
         # Read the buffer until its empty
         # Then check the last set of chars for one of the complete flags
