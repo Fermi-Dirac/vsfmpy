@@ -6,7 +6,7 @@ Visual Structure From Motion by
 Changchang Wu
 ccwu@cs.washington.edu
 
-This code serves as a command-line socket-interface wrapper for VSFM
+This code serves as a command-line socket-interface wrapper for VSFM.
 Commands are sent based on their location in the windows GUI, and a set of socket commands related to that GUI menu
 are available in the VSFM docs.
 
@@ -32,7 +32,13 @@ formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-from .vsfm_data import vsfm_command_dict, default_path
+try:
+    from vsfm_data import vsfm_command_dict, default_path
+except ImportError:
+    try:
+        from .vsfm_data import vsfm_command_dict, default_path
+    except ImportError:
+        logger.error("Could not import from vsfm_data")
 try:
     from cv2 import KeyPoint
     from numpy import ndarray, pi
@@ -42,8 +48,21 @@ except:
     logger.error("Could not import openCV and numpy.")
     tau = 2 * 3.141592653589793
     class KeyPoint(object):
+        """
+        This class is defined only if openCV is missing. These objects will serve as placeholders for the keypoint class
+        that is normally used by openCV.
+        """
         def __init__(self, x, y, size, angle=-1, response=0, octave=0, class_id=-1):
-            # Dummy placeholder class for openCV's KeyPoint object
+            """
+            Setup some attributes for the class
+            :param x: x pixel position of the keypoint
+            :param y: y pixel position of the keypoint
+            :param size: relative size in pixels of the keypoint
+            :param angle: its relative angle
+            :param response: carry over from openCV
+            :param octave: On a pyramid's scale how is it with respect to the rest
+            :param class_id: carry over from openCV
+            """
             self.x = x
             self.y = y
             self.pt = (x, y)
@@ -55,6 +74,11 @@ except:
     opencv = False
 
 def read_vsfm_sift(filename):
+    """
+    This function reads in a vsfm-generated '.sift' file and returns a keypoint list and their descriptions
+    :param filename: a vsfm generated .sift file
+    :return: tuple containing a keypoint list, and descriptions for those keypoints
+    """
     logger.info("Now reading vsfm sift binary file " + filename)
     with open(filename, 'rb') as fileobj:
         header_format = 'c'*8 + 'L'*3 # 'method, version, # features, the number 5 and the number 128. No idea why.
@@ -85,6 +109,14 @@ def read_vsfm_sift(filename):
         return kp_list, descriptions
 
 def write_vsfm_sift(keypoints, descriptors=None, filename=None):
+    """
+    This function writes the keypoints and descriptors to a VSFM-readable '.sift' file.
+    Note that while it writes .sift files, there's no need that the SIFT algorithm be used to generate keypoints
+    :param keypoints: List of Keypoint objects
+    :param descriptors: List of vectors which are each descriptors of those keypoints. Used for matching
+    :param filename: Filename to save this file to. If not provided, will be 'features.sift' in the same path
+    :return:
+    """
     if filename is None:
         filename = 'features.sift'
     with open(filename, 'wb') as fileobj:
@@ -113,6 +145,13 @@ def write_vsfm_sift(keypoints, descriptors=None, filename=None):
     return True
 
 def write_feature_matches(matches_list, filenames, match_path=None):
+    """
+    This function writes the list of matched features to a keypoint matching text file which is readable bt VSFM
+    :param matches_list: List of keypoint matches
+    :param filenames: filenames of the .sift files which are matched.
+    :param match_path: Output path of the text file to be read by VSFM
+    :return: None
+    """
     if match_path is None:
         match_path = 'kp_matches.txt'
     with open(match_path, 'w') as fileobj:
@@ -122,6 +161,12 @@ def write_feature_matches(matches_list, filenames, match_path=None):
             fileobj.write(" ".join([str(match.trainIdx) for match in matches]) + "\n")
 
 def start_vsfm(port=None, vsfm_binary_path=default_path):
+    """
+    Starts VSFM, binds it to a socket, opens the socket interface, sets up a logger and waits.
+    :param port: Port number to open, defaults to a random one
+    :param vsfm_binary_path: the path to VSFM.exe, defaults from the vsfm_data file
+    :return: port that was opened
+    """
     # 'start program'
     if port is None:
         tmp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -136,6 +181,13 @@ def start_vsfm(port=None, vsfm_binary_path=default_path):
     return port
 
 def open_socket(port, host='localhost', wait=True):
+    """
+    Opens the socket over the host, and specifies if we have to wait for the connection
+    :param port: Port to be opened
+    :param host: machine that is hosting vsfm. Defaults to localhost
+    :param wait: True/false if we need to wait to connect
+    :return:
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     for _ in range(10):
         try:
@@ -148,6 +200,16 @@ def open_socket(port, host='localhost', wait=True):
     return sock
 
 def send_vsfm_command_num(open_socket, number, param=None, wait=False, timeout=60):
+    """
+    This function sends a VSFM command via its direct number from the documentation of VSFM.
+    You shouldn't need this mfunction, but it is called from ::send_vsfm_command_tup
+    :param open_socket: The socket that is already opened
+    :param number: the integer comamand you want to send
+    :param param: any single parameter to send with it
+    :param wait: if we should wait for a response
+    :param timeout: how long we should wait for a response at maximum
+    :return:
+    """
     logger.debug("Sending command #" + str(number))
     if param is None:
         cmd = str(number) + '\n'
@@ -216,6 +278,12 @@ def wait_until_complete(sock, timeout=None):
                 waiting = False
 
 def vsfm_of_img_dir(images_path = r'../testing/image sets/kermit', close=True):
+    """
+    This function is mostly an example of how to run a complete VSFM on a directory of images.
+    :param images_path: The folder directory containing a series of pictures
+    :param close: Whether or not we close when we're done
+    :return:
+    """
     images = [file for file in os.listdir(images_path) if any([file.endswith(ext) for ext in ['.jpg', '.png']])]
     logger.info(str(len(images)) + " images found in path " + images_path)
     port = start_vsfm()

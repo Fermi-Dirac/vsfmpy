@@ -7,8 +7,12 @@ vsfm_command_dict['menu_file']['open_multi_images']  returns the number for this
 """
 
 from collections import OrderedDict
-
+import os
 default_path = r'C:\Program Files\VisualSFM_windows_cuda_64bit\VisualSFM.exe'
+if not os.path.exists(default_path):
+    from tkinter import filedialog
+    default_path = filedialog.askdirectory(title='Please select the VisualSFM.exe directory')
+
 
 file_menu = OrderedDict({33166	: 'open_multi_images',
              33028	: 'open_image_and_sift',
@@ -16,7 +20,7 @@ file_menu = OrderedDict({33166	: 'open_multi_images',
              32928	: 'detect_features',
              33167	: 'load_feature_file',
              32841	: 'new_window',
-             105	: 'close_window', 
+             105	: 'close_window',
              32842	: 'exit_program'})
 
 r_file_menu = {command: number for number, command in file_menu.items()}
